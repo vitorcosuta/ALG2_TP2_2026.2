@@ -1,12 +1,16 @@
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py312"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "B"]
 
 [tool.mypy]
 strict = true
+
+[[tool.mypy.overrides]]
+module = ["dash_leaflet.*", "osmnx.*"]
 ignore_missing_imports = true
-check_untyped_defs = true
 
 [tool.radon]
 cc_min = "B"

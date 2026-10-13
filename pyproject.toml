@@ -1,0 +1,13 @@
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+select = ["E", "F", "I", "B"]
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
+check_untyped_defs = true
+
+[tool.radon]
+cc_min = "B"
+show_closures = true

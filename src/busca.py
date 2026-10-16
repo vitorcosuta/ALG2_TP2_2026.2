@@ -2,7 +2,7 @@ import geohash
 import math
 
 def verifica_raio(entregadores,raio_busca,lat_restaurante,lon_restaurante):
-    Raio_terra = 6371
+    RAIO_TERRA = 6371000 #padronizamos em metros
     entregadores_raio = []
     
     #transformada para radianos
@@ -24,7 +24,7 @@ def verifica_raio(entregadores,raio_busca,lat_restaurante,lon_restaurante):
         # Formula de Haversine para calculo de distancia
         a = math.sin(dlat / 2)**2 + math.cos(lat_entregador) * math.cos(lat_restaurante) * math.sin(dlon / 2)**2
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-        distancia = Raio_terra * c
+        distancia = RAIO_TERRA * c
         
         if distancia<=raio_busca:
             entregadores_raio.append(geo_e)
@@ -33,13 +33,14 @@ def verifica_raio(entregadores,raio_busca,lat_restaurante,lon_restaurante):
             
             
             
-def filtragem_entregadores(trie_entregadores, restaurante, raio_busca,precisao):
+def filtragem_entregadores(trie_entregadores, restaurante, raio_busca):
     """Busca os entregadores dentro dos quadrantes e verifica quais deles estao dentro do raio de busca"""
     lat,lon = restaurante
     entregadores = []
+    precisao = geohash.precisao_raio(raio_busca, lat)
     gstr = geohash.encode_geohash(lat,lon,precisao)
     geo_quadrantes = geohash.vizinhos(gstr)
-    
+    geo_quadrantes.append(gstr)
     
     for geo_q in geo_quadrantes:
         entregadores.extend(trie_entregadores.Buscar_prefixo(geo_q))

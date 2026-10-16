@@ -84,7 +84,9 @@ def decode_geohash(geohash_str):
     return (lat_interval[0], lat_interval[1], lon_interval[0], lon_interval[1])
 
 def vizinhos(gstr):
-    (lat_min, lat_max, lon_min, lon_max) = decode_geohash(str) #daqui recebemos quatro limites de intervalos
+    precisao = len(gstr)
+    
+    (lat_min, lat_max, lon_min, lon_max) = decode_geohash(gstr) #daqui recebemos nove limites de intervalos
     #calculamos centro
     #centro = [lat_centro, lon_centro] #[y,x]
     lat_centro = (lat_min + lat_max) /2
@@ -94,17 +96,23 @@ def vizinhos(gstr):
     #calculando altura (varicao em y)
     alt = lat_max - lat_min
     #calculando vizinhos
-    #vizinho norte:
-    viz_norte_centro = [lat_centro + alt, lon_centro]
-    if viz_norte_centro[0] > 90:
-        viz_norte_centro[0] = 90
-    viz_sul_centro = [lat_centro - alt, lon_centro]
-    if viz_sul_centro[0] < -90:
-        viz_sul_centro[0] = -90
-    viz_leste_centro = [lat_centro, lon_centro + larg]
-    if viz_leste_centro[1] > 180:
-        viz_leste_centro[1] = 180
-    viz_oeste_centro = [lat_centro, lon_centro - larg]
-    if viz_oeste_centro[1] < - 180:
-            viz_oeste_centro[1] =  -180
+    coordenadas_vizinhos = [
+        (lat_centro,lon_centro),        #centro
+        (lat_centro+alt,lon_centro),    #norte
+        (lat_centro-alt,lon_centro),    #sul
+        (lat_centro,lon_centro+larg),   #leste
+        (lat_centro,lon_centro-larg),   #oeste
+        (lat_centro+alt,lon_centro+larg),#nordeste
+        (lat_centro+alt,lon_centro-larg),#noroeste
+        (lat_centro-alt,lon_centro-alt), #sudoeste
+        (lat_centro-alt,lon_centro+alt), #sudeste
+    ]
+    
+    #converte as coordenadas para geohash
+    geohash_vizinhos = []
+    for lat, lon in coordenadas_vizinhos:
+        vizinho_str = encode_geohash(lat,lon,precisao)
+    return geohash_vizinhos
+        
+        
 

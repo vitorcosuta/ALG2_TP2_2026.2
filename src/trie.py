@@ -26,7 +26,7 @@ class ArvoreTrie:
                 return
             
             
-            #descemos o nivel se existe a primeira letra nos filhos
+            #descemos o nivel se existe ha primeira letra nos filhos
             filho = no_atual.filhos[primeira_letra]
             i=0
             
@@ -62,11 +62,15 @@ class ArvoreTrie:
                 
                 # criamos um novo no para o restante da palavra
                 palavra_nova_sobra  = palavra_restante[i:]
-            
-                novo_no_folha = No(palavra_nova_sobra)
-                novo_no_folha.fim_de_palavra =True
-                novo_no_folha.entregadores.append(dados_entregador)
-                filho.filhos[palavra_nova_sobra[0]] = novo_no_folha
+                if(len(palavra_nova_sobra)==0): #tratando caso e specifico que o prefixo é todo consumido mas não há resto de palavra
+                    filho.fim_de_palavra=True
+                    filho.entregadores.append(dados_entregador)
+                    return
+                else:
+                    novo_no_folha = No(palavra_nova_sobra)
+                    novo_no_folha.fim_de_palavra =True
+                    novo_no_folha.entregadores.append(dados_entregador)
+                    filho.filhos[palavra_nova_sobra[0]] = novo_no_folha
                 
                 return
                 

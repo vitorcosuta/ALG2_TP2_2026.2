@@ -104,9 +104,12 @@ class ArvoreTrie:
         self.dfs(no_atual,entregadores) 
         return entregadores
     
+    
+    
     def dfs(self, no, entregadores):
         
-        #insere todos os entregadores daquele quadrante na lista
+        """insere todos os entregadores de dado quadrante na lista"""
+        
         if no.fim_de_palavra:
             entregadores.extend(no.entregadores)
         

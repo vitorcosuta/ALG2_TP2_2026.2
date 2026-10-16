@@ -1,3 +1,5 @@
+import math
+
 #definindo base 32
 BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"
 #dicionario: tabela pronta de consulta do BASE32, sabemos imediatamente qual valor é o certo
@@ -104,15 +106,38 @@ def vizinhos(gstr):
         (lat_centro,lon_centro-larg),   #oeste
         (lat_centro+alt,lon_centro+larg),#nordeste
         (lat_centro+alt,lon_centro-larg),#noroeste
-        (lat_centro-alt,lon_centro-alt), #sudoeste
-        (lat_centro-alt,lon_centro+alt), #sudeste
+        (lat_centro-alt,lon_centro-larg), #sudoeste
+        (lat_centro-alt,lon_centro+larg), #sudeste
     ]
-    
+
     #converte as coordenadas para geohash
     geohash_vizinhos = []
     for lat, lon in coordenadas_vizinhos:
-        vizinho_str = encode_geohash(lat,lon,precisao)
+        if -90 <= lat <= 90: #so usamos encode caso a latitude seja valida
+            lon = ((lon +180) % 360) -180 #longitudes não podem dar invslidas: uma long menor que -180 vira positiva no outro sentido
+            vizinho_str = encode_geohash(lat,lon,precisao)
+            if vizinho_str != gstr and vizinho_str not in  geohash_vizinhos:
+                geohash_vizinhos.append(vizinho_str)
     return geohash_vizinhos
         
-        
+def precisao_raio(raio_m, lat):
+    #recebe o raio do restaurante e a latitude, e devolve a precidao(entre 1 e 8) que a busca usa
+    #lat? largura de um grau de long depende dela
+    #calculando quantos bits pra cada coord
 
+    #quanto maior p, menor a celula(faz sentido)
+    #queremos a MAIOR precisao em que as duas dimensoes sejam >=raio
+    melhor =1
+    for p in range (1,9):
+        total = p * 5
+        bits_lat = total // 2 #arredonda pra baixo o numero de niveis de lat
+        bits_lon = (total +1) //2 #arredonda para cima os niveis de long
+        larg = 360 / 2 **bits_lon
+        alt = 180 / 2** bits_lat
+        #conversao para metros
+        alt = 111000*alt
+        larg  = larg* 111000* math.cos(math.radians(lat))
+        #achando melhor precisao
+        if larg >= raio_m and alt >= raio_m:
+            melhor = p
+    return melhor

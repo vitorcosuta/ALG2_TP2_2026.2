@@ -1,3 +1,4 @@
+import time
 import unicodedata
 
 from dash import Dash, Input, Output, State, callback, ctx, dcc, html, no_update
@@ -5,7 +6,7 @@ import dash_leaflet as dl
 
 import busca
 import simulador
-
+from painel_resultados import formatar_km, linhas_tabela, metricas_resumo, painel
 
 GRAFO = simulador.carregar_grafo()
 BARES = simulador.carregar_bares()
@@ -23,7 +24,6 @@ COR_RESTAURANTE_PREENCHIMENTO = "#f59e0b"
 MAX_OPCOES_BUSCA = 50
 ZOOM_CONSULTA = 14
 
-
 def nome_exibicao(bar):
     """Nome fantasia quando existe; senao, a razao social."""
     return bar["NOME_FANTASIA"] if isinstance(bar["NOME_FANTASIA"], str) else bar["NOME"]
@@ -33,11 +33,6 @@ def sem_acentos(texto):
     """Maiusculas e sem acentos, para a busca ignorar essas diferencas."""
     normalizado = unicodedata.normalize("NFKD", texto.upper())
     return "".join(c for c in normalizado if not unicodedata.combining(c))
-
-
-def formatar_km(km):
-    """Raio no formato brasileiro: 0,5 km; 2 km."""
-    return f"{km:g}".replace(".", ",") + " km"
 
 
 def rotulo_bar(bar):
@@ -207,43 +202,50 @@ app.layout = html.Div(
             style={"padding": "20px", "backgroundColor":"#f9f9f9"},
         ),
 
-        # Area de vizualização
-        dcc.Loading(
-            type="circle",
-            overlay_style={"visibility": "visible", "opacity": 0.6},
-            children=html.Div(
-                [
-                    # Mapa Leaflet
-                    dl.Map(
-                        id="mapa-principal",
-                        children=[
-                            dl.TileLayer(),
-                            dl.LayersControl(
-                                [
-                                    dl.Overlay(
-                                        dl.LayerGroup(id="marcadores-layer"),
-                                        name="Entregadores",
-                                        checked=True,
+        # Area de vizualização: mapa a esquerda e resultados a direita
+        html.Div(
+            [
+                dcc.Loading(
+                    type="circle",
+                    overlay_style={"visibility": "visible", "opacity": 0.6},
+                    parent_style={"flex": "0 0 65%"},
+                    children=html.Div(
+                        [
+                            # Mapa Leaflet
+                            dl.Map(
+                                id="mapa-principal",
+                                children=[
+                                    dl.TileLayer(),
+                                    dl.LayersControl(
+                                        [
+                                            dl.Overlay(
+                                                dl.LayerGroup(id="marcadores-layer"),
+                                                name="Entregadores",
+                                                checked=True,
+                                            ),
+                                            # Bares usados como centros da distribuicao
+                                            dl.Overlay(
+                                                dl.LayerGroup(id="centros-layer", children=marcadores_centros()),
+                                                name="Bares de origem da frota",
+                                                checked=True,
+                                            ),
+                                        ],
+                                        position="topright",
                                     ),
-                                    # Bares usados como centros da distribuicao
-                                    dl.Overlay(
-                                        dl.LayerGroup(id="centros-layer", children=marcadores_centros()),
-                                        name="Bares de origem da frota",
-                                        checked=True,
-                                    ),
+                                    dl.LayerGroup(id="restaurante-layer"),
                                 ],
-                                position="topright",
+                                style={"width": "100%", "height": "100%"},
+                                center=[-19.9167, -43.9345],
+                                zoom=13,
                             ),
-                            dl.LayerGroup(id="restaurante-layer"),
+                            legenda,
                         ],
-                        style={"width": "100%", "height": "100%"},
-                        center=[-19.9167, -43.9345],
-                        zoom=13,
+                        style={"position": "relative", "width": "100%", "height": "70vh"},
                     ),
-                    legenda,
-                ],
-                style={"position": "relative", "width": "65%", "height": "70vh", "display": "inline-block"},
-            ),
+                ),
+                painel,
+            ],
+            style={"display": "flex", "gap": "16px", "alignItems": "flex-start"},
         ),
     ]
 )
@@ -268,6 +270,8 @@ def atualizar_opcoes(texto, selecionado):
     Output("restaurante-layer", "children"),
     Output("mapa-principal", "viewport"),
     Output("status-consulta", "children"),
+    Output("tabela-entregadores", "data"),
+    Output("metricas", "children"),
     Input("btn-gerar", "n_clicks"),
     Input("dropdown-restaurante", "value"),
     Input("slider-raio", "value"),
@@ -289,7 +293,7 @@ def atualizar_mapa(n_clicks, indice_bar, raio_km, n_entregadores):
     if indice_bar is None:
         estado["consulta"] = None
         mensagem = "Selecione um restaurante para buscar entregadores."
-        return marcadores_entregadores(entregadores, {}), [], no_update, mensagem
+        return marcadores_entregadores(entregadores, {}), [], no_update, mensagem, [], []
 
     bar = BARES.loc[indice_bar]
     raio_m = raio_km * 1000
@@ -306,19 +310,34 @@ def atualizar_mapa(n_clicks, indice_bar, raio_km, n_entregadores):
     if estado["trie"] is None:
         estado["consulta"] = None
         mensagem = "Gere os entregadores para fazer a consulta."
-        return [], restaurante, viewport, mensagem
+        return [], restaurante, viewport, mensagem, [], []
 
+    # Runtime a ser incluído na tabela
+    inicio = time.perf_counter()
     resultado = busca.filtragem_entregadores(
         estado["trie"], (bar["LATITUDE"], bar["LONGITUDE"]), raio_km
     )
-    estado["consulta"] = {"restaurante": indice_bar, "raio_km": raio_km, "resultado": resultado}
+    runtime_ms = (time.perf_counter() - inicio) * 1000
+    estado["consulta"] = {
+        "restaurante": indice_bar,
+        "raio_km": raio_km,
+        "resultado": resultado,
+        "runtime_ms": runtime_ms,
+    }
 
     distancias = {e["id"]: d for d, e in resultado}
     mensagem = (
         f"{len(resultado)} de {len(entregadores)} entregadores "
         f"no raio de {formatar_km(raio_km)} de {nome_exibicao(bar)}."
     )
-    return marcadores_entregadores(entregadores, distancias), restaurante, viewport, mensagem
+    return (
+        marcadores_entregadores(entregadores, distancias),
+        restaurante,
+        viewport,
+        mensagem,
+        linhas_tabela(resultado),
+        metricas_resumo(resultado, len(entregadores), runtime_ms),
+    )
 
 
 if __name__ == "__main__":

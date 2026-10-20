@@ -1,7 +1,7 @@
 import geohash
 import math
 
-def verifica_raio(entregadores,raio_busca,lat_restaurante,lon_restaurante):
+def verifica_raio(entregadores,raio_busca_m,lat_restaurante,lon_restaurante):
     RAIO_TERRA = 6371000 #padronizamos em metros
     entregadores_raio = []
     
@@ -26,18 +26,23 @@ def verifica_raio(entregadores,raio_busca,lat_restaurante,lon_restaurante):
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         distancia = RAIO_TERRA * c
         
-        if distancia<=raio_busca:
-            entregadores_raio.append(geo_e)
+        if distancia<=raio_busca_m:
+            entregadores_raio.append((distancia,geo_e))
+        
+        entregadores_raio.sort() #ordenacao dos entregadores
     
     return entregadores_raio
             
             
             
-def filtragem_entregadores(trie_entregadores, restaurante, raio_busca):
+def filtragem_entregadores(trie_entregadores, restaurante, raio_busca_km):
     """Busca os entregadores dentro dos quadrantes e verifica quais deles estao dentro do raio de busca"""
     lat,lon = restaurante
     entregadores = []
-    precisao = geohash.precisao_raio(raio_busca, lat)
+    raio_busca_m = raio_busca_km*1000.0
+    precisao = geohash.precisao_raio(raio_busca_m, lat)
+    
+    #pega o prefixo do restaurante e entorno com precisao dinamica
     gstr = geohash.encode_geohash(lat,lon,precisao)
     geo_quadrantes = geohash.vizinhos(gstr)
     geo_quadrantes.append(gstr)
@@ -45,7 +50,7 @@ def filtragem_entregadores(trie_entregadores, restaurante, raio_busca):
     for geo_q in geo_quadrantes:
         entregadores.extend(trie_entregadores.Buscar_prefixo(geo_q))
         
-    entregadores_raio = verifica_raio(entregadores,raio_busca,lat,lon)
+    entregadores_raio = verifica_raio(entregadores,raio_busca_m,lat,lon)
     
     return entregadores_raio
         

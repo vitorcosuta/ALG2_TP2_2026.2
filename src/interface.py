@@ -2,9 +2,9 @@ import time
 import unicodedata
 
 from dash import Dash, Input, Output, State, callback, ctx, dcc, html, no_update
-import dash_leaflet as dl
 
 import busca
+import mapa
 import simulador
 from painel_resultados import formatar_km, linhas_tabela, metricas_resumo, painel
 
@@ -14,15 +14,7 @@ CENTROS = simulador.sortear_centros(BARES)
 
 estado = {"trie": None, "entregadores": [], "consulta": None}
 
-COR_BAR = "#1d4ed8"
-COR_BAR_PREENCHIMENTO = "#3b82f6"
-COR_ENTREGADOR = "#6b7280"
-COR_NO_RAIO = "#dc2626"
-COR_RESTAURANTE = "#b45309"
-COR_RESTAURANTE_PREENCHIMENTO = "#f59e0b"
-
 MAX_OPCOES_BUSCA = 50
-ZOOM_CONSULTA = 14
 
 def nome_exibicao(bar):
     """Nome fantasia quando existe; senao, a razao social."""
@@ -47,6 +39,12 @@ TEXTO_BUSCA = (
     BARES["NOME_FANTASIA"].fillna("") + " " + BARES["NOME"].fillna("") + " " + ROTULOS
 ).map(sem_acentos)
 
+# Bares de origem da frota no mapa: (lat, lon, "nome — bairro")
+PONTOS_CENTROS = [
+    (bar["LATITUDE"], bar["LONGITUDE"], f"{nome_exibicao(bar)} — {bar['NOME_BAIRRO']}")
+    for _, bar in CENTROS.iterrows()
+]
+
 
 def buscar_restaurantes(texto):
     """Indices dos bares que contem todas as palavras digitadas."""
@@ -55,119 +53,6 @@ def buscar_restaurantes(texto):
         encontrados = encontrados[encontrados.str.contains(palavra, regex=False)]
     return list(encontrados.index[:MAX_OPCOES_BUSCA])
 
-
-def marcadores_centros():
-    """Bares sorteados como centros da distribuicao dos entregadores."""
-    marcadores = []
-    for _, bar in CENTROS.iterrows():
-        marcadores.append(
-            dl.CircleMarker(
-                center=[bar["LATITUDE"], bar["LONGITUDE"]],
-                radius=6,
-                color=COR_BAR,
-                fillColor=COR_BAR_PREENCHIMENTO,
-                fillOpacity=0.9,
-                weight=2,
-                children=dl.Tooltip(f"{nome_exibicao(bar)} — {bar['NOME_BAIRRO']}"),
-            )
-        )
-    return marcadores
-
-
-def marcadores_entregadores(entregadores, distancias):
-    """Entregadores no raio em vermelho e os demais em cinza."""
-    fora = [e for e in entregadores if e["id"] not in distancias]
-    dentro = [e for e in entregadores if e["id"] in distancias]
-
-    marcadores = [
-        dl.CircleMarker(
-            center=[e["lat"], e["lon"]],
-            radius=4,
-            color=COR_ENTREGADOR,
-            fillOpacity=0.7,
-            weight=1,
-            children=dl.Tooltip(e["id"]),
-        )
-        for e in fora
-    ]
-    marcadores += [
-        dl.CircleMarker(
-            center=[e["lat"], e["lon"]],
-            radius=5,
-            color=COR_NO_RAIO,
-            fillColor=COR_NO_RAIO,
-            fillOpacity=0.9,
-            weight=1,
-            children=dl.Tooltip(f"{e['id']} — {distancias[e['id']]:.0f} m"),
-        )
-        for e in dentro
-    ]
-    return marcadores
-
-
-def marcadores_restaurante(bar, raio_m):
-    """Destaque do restaurante consultado e o circulo do raio de atendimento."""
-    centro = [float(bar["LATITUDE"]), float(bar["LONGITUDE"])]
-    return [
-        dl.Circle(
-            center=centro,
-            radius=raio_m,
-            color=COR_NO_RAIO,
-            weight=2,
-            dashArray="6 6",
-            fillOpacity=0.05,
-        ),
-        dl.CircleMarker(
-            center=centro,
-            radius=10,
-            color=COR_RESTAURANTE,
-            fillColor=COR_RESTAURANTE_PREENCHIMENTO,
-            fillOpacity=1.0,
-            weight=3,
-            children=dl.Tooltip(rotulo_bar(bar)),
-        ),
-    ]
-
-
-def item_legenda(cor, preenchimento, texto, tracejado=False):
-    """Linha da legenda: um circulo colorido seguido do texto."""
-    circulo = html.Span(
-        style={
-            "display": "inline-block",
-            "width": "12px",
-            "height": "12px",
-            "borderRadius": "50%",
-            "border": f"2px {'dashed' if tracejado else 'solid'} {cor}",
-            "backgroundColor": preenchimento,
-            "marginRight": "8px",
-            "verticalAlign": "middle",
-        }
-    )
-    return html.Div([circulo, html.Span(texto)], style={"marginBottom": "4px"})
-
-
-legenda = html.Div(
-    [
-        html.Strong("Legenda", style={"display": "block", "marginBottom": "6px"}),
-        item_legenda(COR_RESTAURANTE, COR_RESTAURANTE_PREENCHIMENTO, "Restaurante consultado"),
-        item_legenda(COR_NO_RAIO, "transparent", "Raio de atendimento", tracejado=True),
-        item_legenda(COR_NO_RAIO, COR_NO_RAIO, "Entregador no raio"),
-        item_legenda(COR_ENTREGADOR, COR_ENTREGADOR, "Entregador fora do raio"),
-        item_legenda(COR_BAR, COR_BAR_PREENCHIMENTO, "Bar de origem da frota"),
-    ],
-    style={
-        "position": "absolute",
-        "bottom": "24px",
-        "left": "12px",
-        "zIndex": 1000,
-        "backgroundColor": "rgba(255, 255, 255, 0.92)",
-        "padding": "10px 12px",
-        "borderRadius": "6px",
-        "boxShadow": "0 1px 4px rgba(0, 0, 0, 0.3)",
-        "fontSize": "13px",
-        "lineHeight": "1.4",
-    },
-)
 
 app = Dash(__name__)
 
@@ -205,44 +90,7 @@ app.layout = html.Div(
         # Area de vizualização: mapa a esquerda e resultados a direita
         html.Div(
             [
-                dcc.Loading(
-                    type="circle",
-                    overlay_style={"visibility": "visible", "opacity": 0.6},
-                    parent_style={"flex": "0 0 65%"},
-                    children=html.Div(
-                        [
-                            # Mapa Leaflet
-                            dl.Map(
-                                id="mapa-principal",
-                                children=[
-                                    dl.TileLayer(),
-                                    dl.LayersControl(
-                                        [
-                                            dl.Overlay(
-                                                dl.LayerGroup(id="marcadores-layer"),
-                                                name="Entregadores",
-                                                checked=True,
-                                            ),
-                                            # Bares usados como centros da distribuicao
-                                            dl.Overlay(
-                                                dl.LayerGroup(id="centros-layer", children=marcadores_centros()),
-                                                name="Bares de origem da frota",
-                                                checked=True,
-                                            ),
-                                        ],
-                                        position="topright",
-                                    ),
-                                    dl.LayerGroup(id="restaurante-layer"),
-                                ],
-                                style={"width": "100%", "height": "100%"},
-                                center=[-19.9167, -43.9345],
-                                zoom=13,
-                            ),
-                            legenda,
-                        ],
-                        style={"position": "relative", "width": "100%", "height": "70vh"},
-                    ),
-                ),
+                mapa.componente_mapa(PONTOS_CENTROS),
                 painel,
             ],
             style={"display": "flex", "gap": "16px", "alignItems": "flex-start"},
@@ -293,19 +141,17 @@ def atualizar_mapa(n_clicks, indice_bar, raio_km, n_entregadores):
     if indice_bar is None:
         estado["consulta"] = None
         mensagem = "Selecione um restaurante para buscar entregadores."
-        return marcadores_entregadores(entregadores, {}), [], no_update, mensagem, [], []
+        return mapa.marcadores_entregadores(entregadores, {}), [], no_update, mensagem, [], []
 
     bar = BARES.loc[indice_bar]
     raio_m = raio_km * 1000
-    restaurante = marcadores_restaurante(bar, raio_m)
+    restaurante = mapa.marcadores_restaurante(
+        bar["LATITUDE"], bar["LONGITUDE"], raio_m, rotulo_bar(bar)
+    )
 
     viewport = no_update
     if ctx.triggered_id == "dropdown-restaurante":
-        viewport = {
-            "center": [float(bar["LATITUDE"]), float(bar["LONGITUDE"])],
-            "zoom": ZOOM_CONSULTA,
-            "transition": "flyTo",
-        }
+        viewport = mapa.viewport_restaurante(bar["LATITUDE"], bar["LONGITUDE"])
 
     if estado["trie"] is None:
         estado["consulta"] = None
@@ -331,7 +177,7 @@ def atualizar_mapa(n_clicks, indice_bar, raio_km, n_entregadores):
         f"no raio de {formatar_km(raio_km)} de {nome_exibicao(bar)}."
     )
     return (
-        marcadores_entregadores(entregadores, distancias),
+        mapa.marcadores_entregadores(entregadores, distancias),
         restaurante,
         viewport,
         mensagem,

@@ -2,20 +2,19 @@ import geohash
 import math
 
 def verifica_raio(entregadores,raio_busca_m,lat_restaurante,lon_restaurante):
+    """Cada entregador e um dicionario {"id": ..., "lat": ..., "lon": ...}.
+    Retorna lista de (distancia_m, entregador) ordenada pela distancia"""
     RAIO_TERRA = 6371000 #padronizamos em metros
     entregadores_raio = []
-    
+
     #transformada para radianos
     lat_restaurante = math.radians(lat_restaurante)
     lon_restaurante = math.radians(lon_restaurante)
-    
-    for geo_e in entregadores:
-        lat_min,lat_max,lon_min,lon_max = geohash.decode_geohash(geo_e)
-        lat_entregador = (lat_min+lat_max)/2
-        lon_entregador = (lon_max+lon_min)/2
-        
-        #transformação para radianos
-        lat_entregador,lon_entregador = map(math.radians,[lat_entregador,lon_entregador])
+
+    for entregador in entregadores:
+        #usamos a posicao real do entregador, e nao o centro da celula do geohash
+        lat_entregador = math.radians(entregador["lat"])
+        lon_entregador = math.radians(entregador["lon"])
         
         #diferenca
         dlat = lat_entregador-lat_restaurante
@@ -27,9 +26,10 @@ def verifica_raio(entregadores,raio_busca_m,lat_restaurante,lon_restaurante):
         distancia = RAIO_TERRA * c
         
         if distancia<=raio_busca_m:
-            entregadores_raio.append((distancia,geo_e))
-        
-    entregadores_raio.sort() #ordenacao dos entregadores
+            entregadores_raio.append((distancia,entregador))
+
+    #ordenacao pela distancia (dicionarios nao sao comparaveis em caso de empate)
+    entregadores_raio.sort(key=lambda item: item[0])
     
     return entregadores_raio
             

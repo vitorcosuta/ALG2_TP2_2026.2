@@ -3,7 +3,7 @@ class No:
         self.prefixo = prefixo
         self.filhos = {}
         self.fim_de_palavra = False
-        self.entregadores = [] # Se for o fim, guardamos os dados do entregador
+        self.entregadores = [] # {"id", "lat", "lon"}
 
 
 class ArvoreTrie:

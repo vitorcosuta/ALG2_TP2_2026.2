@@ -1,21 +1,5 @@
 """Adiciona latitude e longitude aos bares de bares.csv.
 
-As coordenadas vem da base "Atividades Economicas" do portal de dados abertos
-da PBH (dados.pbh.gov.br/dataset/atividades-economicas), cuja coluna GEOMETRIA
-traz cada estabelecimento como POINT (x y) em UTM SIRGAS 2000 fuso 23S
-(EPSG:31983).
-
-Como bares.csv e a base da PBH sao de meses diferentes, o cruzamento e feito em
-niveis, do mais preciso para o mais aproximado. A coluna NIVEL_CRUZAMENTO indica
-qual nivel encontrou cada bar:
-
-    1 - mesmo nome e mesmo endereco (logradouro, numero e bairro)
-    2 - mesmo endereco, qualquer estabelecimento da PBH naquele endereco
-    3 - mesmo logradouro e numero, bairro diferente
-    4 - mesmo logradouro e bairro, numero mais proximo (ate TOLERANCIA_NUMERO)
-
-Bares nao encontrados ficam com latitude/longitude vazias e nivel 0.
-
 Uso:
     python scripts/cruzar_bares.py \
         --bares bares.csv \
@@ -143,8 +127,8 @@ def main() -> None:
     total = len(saida)
     print(f"{total} bares processados -> {args.saida}")
     contagem = saida["NIVEL_CRUZAMENTO"].value_counts().sort_index()
-    for nivel, qtd in contagem.items():
-        print(f"  nivel {nivel}: {qtd:6d} ({100 * qtd / total:5.1f}%)")
+    for nivel_contado, qtd in contagem.items():
+        print(f"  nivel {nivel_contado}: {qtd:6d} ({100 * qtd / total:5.1f}%)")
 
 
 if __name__ == "__main__":

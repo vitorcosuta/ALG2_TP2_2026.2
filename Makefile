@@ -2,7 +2,7 @@ VENV   := .venv
 PYTHON := $(VENV)/bin/python
 
 # Analisa apenas os diretórios que já existem
-SRC_DIRS := $(wildcard src tests)
+SRC_DIRS := $(wildcard src tests scripts)
 
 .DEFAULT_GOAL := help
 .PHONY: help venv install lint format-check typecheck complexity test check fix clean
@@ -30,7 +30,7 @@ typecheck: ## Mypy: verificação de tipos (modo strict)
 ifneq ($(SRC_DIRS),)
 	$(PYTHON) -m mypy $(SRC_DIRS)
 else
-	@echo "mypy: nenhum diretório src/ ou tests/ encontrado, pulando."
+	@echo "mypy: nenhum diretório src/, tests/ ou scripts/ encontrado, pulando."
 endif
 
 complexity: ## Radon: complexidade ciclomática e manutenibilidade
@@ -38,7 +38,7 @@ ifneq ($(SRC_DIRS),)
 	$(PYTHON) -m radon cc $(SRC_DIRS) -s -a
 	$(PYTHON) -m radon mi $(SRC_DIRS) -s
 else
-	@echo "radon: nenhum diretório src/ ou tests/ encontrado, pulando."
+	@echo "radon: nenhum diretório src/, tests/ ou scripts/ encontrado, pulando."
 endif
 
 test: ## Pytest: testes unitários

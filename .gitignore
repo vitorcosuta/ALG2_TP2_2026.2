@@ -2,6 +2,12 @@
 *.csv
 Especificacao.pdf
 
+# Cache de downloads do osmnx
+cache/
+
+# Arquivos de trava do LibreOffice
+.~lock.*#
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

@@ -29,7 +29,7 @@ def verifica_raio(entregadores,raio_busca_m,lat_restaurante,lon_restaurante):
         if distancia<=raio_busca_m:
             entregadores_raio.append((distancia,geo_e))
         
-        entregadores_raio.sort() #ordenacao dos entregadores
+    entregadores_raio.sort() #ordenacao dos entregadores
     
     return entregadores_raio
             

@@ -6,93 +6,88 @@ Motor de busca geoespacial para encontrar os entregadores mais próximos de um r
 
 ## Requisitos
 
-- Python 3.12
-- `make` (opcional, mas recomendado)
+- **Python 3.12** (versão usada no desenvolvimento e nos testes)
+- **Git**, para clonar o repositório
+- Conexão com a internet na instalação (para baixar as bibliotecas) e durante o uso (para carregar o mapa de fundo)
 
-## Instalação
+Os dados necessários já estão no repositório: os bares com coordenadas (`bares_cruzada.csv`) e o grafo viário de Belo Horizonte (`data/bh_drive.graphml`).
+
+## Como rodar
+
+Todos os comandos abaixo devem ser executados **na pasta raiz do projeto**.
+
+### 1. Clonar o repositório
 
 ```bash
-make install
+git clone https://github.com/vitorcosuta/ALG2_TP2_2026.2.git
+cd ALG2_TP2_2026.2
 ```
 
-Esse comando cria o ambiente virtual em `.venv/` (se ainda não existir) e instala as dependências de desenvolvimento. Para ativar o ambiente no terminal:
+### 2. Criar o ambiente virtual
 
-```bash
-source .venv/bin/activate
-```
-
-Sem `make`:
+O ambiente virtual isola as bibliotecas do projeto das demais instaladas no computador. Ele só precisa ser criado uma vez:
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements-dev.txt
 ```
 
-- `requirements.txt`: dependências para executar a aplicação.
-- `requirements-dev.txt`: as anteriores, mais as ferramentas de teste e análise estática.
+No Windows, use `python` no lugar de `python3`.
 
-## Contribuindo
+### 3. Ativar o ambiente virtual
 
-### Antes de cada commit
+É preciso ativar o ambiente **sempre que abrir um novo terminal**:
+
+| Sistema | Comando |
+|---|---|
+| Linux / macOS | `source .venv/bin/activate` |
+| Windows (PowerShell) | `.venv\Scripts\Activate.ps1` |
+| Windows (Prompt de Comando) | `.venv\Scripts\activate.bat` |
+
+Com o ambiente ativo, o nome `(.venv)` aparece no início da linha do terminal. Para desativar, use `deactivate`.
+
+> No PowerShell, se aparecer um erro de permissão ao ativar, rode antes `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` e tente de novo.
+
+### 4. Instalar as bibliotecas
+
+Com o ambiente ativo, instale as dependências (também só na primeira vez):
 
 ```bash
-make check
+pip install -r requirements.txt
 ```
 
-Esse comando roda, em sequência, todas as verificações abaixo e para na primeira que falhar. Rode `make help` para ver todos os comandos.
-
-| Comando | Ferramenta | O que verifica |
-|---|---|---|
-| `make lint` | ruff | Erros, imports não usados ou fora de ordem, bugs comuns |
-| `make format-check` | ruff | Se o código segue a formatação padrão |
-| `make typecheck` | mypy | Consistência de tipos (modo `strict`) |
-| `make complexity` | radon | Complexidade ciclomática e índice de manutenibilidade |
-| `make test` | pytest | Testes unitários em `tests/` |
-| `make fix` | ruff | Aplica correções automáticas e formata o código |
-| `make clean` | — | Remove os caches das ferramentas |
-
-As regras de cada ferramenta estão em [`pyproject.toml`](pyproject.toml), e as mesmas valem para todos os contribuidores.
-
-### Lendo e corrigindo os resultados
-
-**Ruff** informa `arquivo:linha:coluna: CÓDIGO mensagem`:
-
-```
-src/trie.py:3:8: F401 [*] `os` imported but unused
-```
-
-- Itens marcados com `[*]` são corrigidos automaticamente com `make fix`.
-- Para entender uma regra: `.venv/bin/ruff rule F401`.
-- Problemas de formatação são resolvidos com `make fix`; não formate à mão.
-
-**Mypy** informa `arquivo:linha: error: mensagem [código]`:
-
-```
-src/geohash.py:12: error: Function is missing a return type annotation  [no-untyped-def]
-```
-
-- Não há correção automática: ajuste as anotações de tipo indicadas.
-- Evite silenciar com `# type: ignore`. Se o erro vier de uma biblioteca sem tipos, adicione-a à lista `module` em `[[tool.mypy.overrides]]` no `pyproject.toml`.
-
-**Radon** atribui notas de A (simples) a F (muito complexa) a cada função:
-
-```
-src/trie.py
-    M 42:4 CompactTrie.insert - C (14)
-```
-
-- Só são listadas funções com nota B ou pior (`cc_min = "B"`).
-- Funções com nota C ou pior devem ser divididas em funções menores.
-- No índice de manutenibilidade (`radon mi`), A é bom; B ou C indicam arquivos difíceis de manter.
-
-**Pytest** mostra quais testes falharam e o motivo. Para rodar um único arquivo ou teste:
+### 5. Abrir a interface
 
 ```bash
-.venv/bin/python -m pytest tests/test_trie.py
-.venv/bin/python -m pytest tests/test_trie.py -k busca_prefixo
+python src/interface.py
 ```
 
-### Bibliotecas
+A aplicação leva alguns segundos para iniciar, porque carrega o grafo viário da cidade. Quando o terminal mostrar a mensagem abaixo, ela está pronta:
 
-As estruturas de dados centrais (Geohash e Trie) devem ser implementadas pelo grupo, sem bibliotecas prontas. Antes de adicionar qualquer nova dependência ao `requirements.txt`, confirme com o professor ou o monitor se ela é permitida.
+```
+Dash is running on http://127.0.0.1:8050/
+```
+
+Acesse no navegador: **<http://127.0.0.1:8050>**
+
+Para encerrar a aplicação, volte ao terminal e pressione `Ctrl + C`.
+
+## Como usar a interface
+
+1. Informe a **quantidade de entregadores (N)** e clique em **Gerar Entregadores**. A frota anterior é descartada e os novos entregadores aparecem no mapa, distribuídos ao redor dos bares de origem (em azul).
+2. Em **Selecione o Restaurante**, digite parte do nome ou do endereço do restaurante e escolha uma das opções. O mapa se centraliza nele.
+3. Ajuste o **raio de atendimento** (de 0,5 a 5 km). Os entregadores dentro do raio ficam em destaque (vermelho) e os demais em cinza.
+4. Ao lado do mapa, a tabela mostra o ID, a distância e o tempo estimado de chegada de cada entregador no raio, junto com as métricas resumo e o tempo da consulta.
+
+## Scripts auxiliares (opcional)
+
+Os scripts em `scripts/` não são necessários para usar a interface. Eles regeneram os dados e produzem os gráficos do relatório. Rode-os com o ambiente virtual ativo, a partir da raiz do projeto:
+
+| Script | O que faz |
+|---|---|
+| `python scripts/cruzar_bares.py` | Gera `bares_cruzada.csv` cruzando `bares.csv` com a base de Atividades Econômicas da PBH ([dados.pbh.gov.br](https://dados.pbh.gov.br/dataset/atividades-economicas)), que precisa ser baixada antes |
+| `python scripts/baixar_grafo.py` | Baixa novamente o grafo viário de Belo Horizonte do OpenStreetMap (~2 min) |
+| `python scripts/experimentos.py` | Executa os experimentos de desempenho e salva os resultados em CSV (~3 min) |
+| `python scripts/graficos.py` | Gera os gráficos do relatório a partir desses CSVs |
+| `python scripts/validar_simulador.py` | Gera o histograma que valida a distribuição dos entregadores |
+
+Use `--help` em qualquer script para ver as opções disponíveis.

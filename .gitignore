@@ -232,3 +232,9 @@ __marimo__/
 !bares_cruzada.csv
 
 /resultados
+
+Makefile
+
+requirements-dev.txt
+
+pyproject.toml

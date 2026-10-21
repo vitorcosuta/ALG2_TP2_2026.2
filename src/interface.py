@@ -64,7 +64,7 @@ app.layout = html.Div(
         html.Div(
             [
                 html.Label("Quantidade de Entregadores (N):"),
-                dcc.Input(id="input-n-entregadores",type="number",min=1,max=10000,step=1,value=1000),
+                dcc.Input(id="input-n-entregadores",type="number",min=1,max=50000,step=1,value=1000),
                 html.Label("Selecione o Restaurante:"),
                 dcc.Dropdown(
                     id="dropdown-restaurante",
@@ -76,10 +76,10 @@ app.layout = html.Div(
                 dcc.Slider(
                     id="slider-raio",
                     min=0.5,
-                    max=5.0,
+                    max = 20,
                     step=0.5,
                     value=2.0,
-                    marks={r: formatar_km(r) for r in (0.5, 1, 2, 3, 4, 5)},
+                    marks={r: formatar_km(r) for r in (0.5, 1, 2, 3, 4, 5, 10,20)},
                 ),
                 html.Button("Gerar Entregadores", id="btn-gerar", n_clicks=0),
                 html.Div(id="status-consulta", style={"marginTop": "12px"}),
@@ -114,9 +114,7 @@ def atualizar_opcoes(texto, selecionado):
 
 
 @callback(
-    Output("marcadores-layer", "children"),
-    Output("restaurante-layer", "children"),
-    Output("mapa-principal", "viewport"),
+    Output("mapa-principal", "figure"),
     Output("status-consulta", "children"),
     Output("tabela-entregadores", "data"),
     Output("metricas", "children"),
@@ -141,7 +139,8 @@ def atualizar_mapa(n_clicks, indice_bar, raio_km, n_entregadores):
     if indice_bar is None:
         estado["consulta"] = None
         mensagem = "Selecione um restaurante para buscar entregadores."
-        return mapa.marcadores_entregadores(entregadores, {}), [], no_update, mensagem, [], []
+        fig = mapa.montar_figura(PONTOS_CENTROS, mapa.marcadores_entregadores(entregadores, {}), [])
+        return fig, mensagem, [], []
 
     bar = BARES.loc[indice_bar]
     raio_m = raio_km * 1000
@@ -149,14 +148,15 @@ def atualizar_mapa(n_clicks, indice_bar, raio_km, n_entregadores):
         bar["LATITUDE"], bar["LONGITUDE"], raio_m, rotulo_bar(bar)
     )
 
-    viewport = no_update
+    visualizacao = None
     if ctx.triggered_id == "dropdown-restaurante":
-        viewport = mapa.viewport_restaurante(bar["LATITUDE"], bar["LONGITUDE"])
+        visualizacao = mapa.visualizacao_restaurante(bar["LATITUDE"], bar["LONGITUDE"])
 
     if estado["trie"] is None:
         estado["consulta"] = None
         mensagem = "Gere os entregadores para fazer a consulta."
-        return [], restaurante, viewport, mensagem, [], []
+        fig = mapa.montar_figura(PONTOS_CENTROS, [], restaurante, visualizacao)
+        return fig, mensagem, [], []
 
     # Runtime a ser incluído na tabela
     inicio = time.perf_counter()
@@ -176,15 +176,18 @@ def atualizar_mapa(n_clicks, indice_bar, raio_km, n_entregadores):
         f"{len(resultado)} de {len(entregadores)} entregadores "
         f"no raio de {formatar_km(raio_km)} de {nome_exibicao(bar)}."
     )
-    return (
+    fig = mapa.montar_figura(
+        PONTOS_CENTROS,
         mapa.marcadores_entregadores(entregadores, distancias),
         restaurante,
-        viewport,
+        visualizacao,
+    )
+    return (
+        fig,
         mensagem,
         linhas_tabela(resultado),
         metricas_resumo(resultado, len(entregadores), runtime_ms),
     )
-
-
+    
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False)

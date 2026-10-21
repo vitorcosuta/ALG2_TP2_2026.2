@@ -4,6 +4,12 @@ Trabalho Prático de DCC207 – Algoritmos 2 (UFMG, 2026/2).
 
 Motor de busca geoespacial para encontrar os entregadores mais próximos de um restaurante em Belo Horizonte, usando codificação Geohash armazenada em uma Trie compacta, com filtragem por raio e visualização em mapa interativo.
 
+### Desenvolvido por 
+
+- Isabela Gomes Lima (2024065982)
+- Vitor Costa (2022043418)
+- Vinícius Rocha da Cunha (2024066075)
+
 ## Requisitos
 
 - **Python 3.12** (versão usada no desenvolvimento e nos testes)

@@ -1,9 +1,3 @@
-"""Baixa o grafo viario de Belo Horizonte do OpenStreetMap e salva em GraphML.
-
-Uso:
-    python scripts/baixar_grafo.py --saida data/bh_drive.graphml
-"""
-
 import argparse
 import time
 from pathlib import Path

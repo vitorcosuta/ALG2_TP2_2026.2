@@ -1,12 +1,3 @@
-"""Adiciona latitude e longitude aos bares de bares.csv.
-
-Uso:
-    python scripts/cruzar_bares.py \
-        --bares bares.csv \
-        --pbh 20240801_atividade_economica.csv \
-        --saida bares_geo.csv
-"""
-
 import argparse
 
 import pandas as pd

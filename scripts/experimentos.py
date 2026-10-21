@@ -156,7 +156,9 @@ def experimento_escala(grafo, centros, restaurantes):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(
+        description="Coleta os dados dos experimentos do relatorio e salva em CSV."
+    )
     parser.add_argument("--saida", default="resultados")
     args = parser.parse_args()
 

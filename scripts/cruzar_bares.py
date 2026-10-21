@@ -91,7 +91,9 @@ def utm_para_latlon(bares: pd.DataFrame) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(
+        description="Adiciona latitude e longitude aos bares a partir da base da PBH."
+    )
     parser.add_argument("--bares", default="bares.csv")
     parser.add_argument("--pbh", default="20240801_atividade_economica.csv")
     parser.add_argument("--saida", default="bares_geo.csv")

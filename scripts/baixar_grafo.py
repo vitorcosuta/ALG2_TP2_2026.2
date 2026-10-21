@@ -8,7 +8,9 @@ LUGAR = "Belo Horizonte, Minas Gerais, Brazil"
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(
+        description="Baixa o grafo viario de BH do OpenStreetMap e salva em GraphML."
+    )
     parser.add_argument("--saida", default="data/bh_drive.graphml")
     parser.add_argument(
         "--tipo",
